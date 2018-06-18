@@ -26,7 +26,7 @@ public class QueueComparator<T> implements Comparator<Node<T>> {
      * Compares two nodes based on their shortest path
      * @param n1 node 1 to compare
      * @param n2 node 2 to compare
-     * @return -1 if n1 < n2, or 1 if n1 >= 2
+     * @return -1 if n1 < n2, or 1 if n1 >= n2
      */
     @Override
     public int compare(Node<T> n1, Node<T> n2) {
@@ -36,14 +36,12 @@ public class QueueComparator<T> implements Comparator<Node<T>> {
         /* If no paths do whatever */
         if (path1 == NOT_FOUND && path2 == NOT_FOUND) {
             return 0;
-        /* If node 1 has a path, it has priority */
+        /* If node 1 has no path, node 2 has priority */
         } else if (path1 == NOT_FOUND) {
             return 1;
-        /* If node 2 has a path, it has priority */
-        } else if (path2 == NOT_FOUND) {
-            return -1;
-        /* If node 1's path is less, it has priority */
-        } else if (path1 < path2) {
+        /* If node 2 has no path, or if node 1's path is less,
+         * node 1 has priority */
+        } else if (path2 == NOT_FOUND || path1 < path2) {
             return -1;
         /* Node 2 has priority */
         } else {

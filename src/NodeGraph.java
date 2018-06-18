@@ -187,28 +187,7 @@ public class NodeGraph<T> {
             final Node<T> destNode = nodes.get(destIndex);
             
             boolean[] visited = new boolean[nodes.size()];
-            Queue<Node<T>> queue = new PriorityQueue<>((node1, node2) -> {
-                int path1 = paths[getIndex(node1)];
-                int path2 = paths[getIndex(node2)];
-                int val = 0;
-                System.out.println("Node: " + node1 + " Path1: " + path1);
-                System.out.println("Node: " + node2 + " Path2: " + path2);
-    
-                if (path1 == NOT_FOUND && path2 == NOT_FOUND) {
-                    val = 0;
-                } else if (path1 == NOT_FOUND) {
-                    val = 1;
-                } else if (path2 == NOT_FOUND) {
-                    val = -1;
-                } else if (path1 < path2) {
-                    val = -1;
-                } else {
-                    val = 1;
-                }
-                System.out.println("Val: " + val + "\n");
-                return val;
-            });
-            
+            Queue<Node<T>> queue = new PriorityQueue<>(new QueueComparator<>(this, paths, NOT_FOUND));
             queue.add(srcNode);
             
             /* Set all path values to -1 */
@@ -217,13 +196,7 @@ public class NodeGraph<T> {
             paths[srcIndex] = 0;
             
             while (queue.size() > 0) {
-                System.out.println("Before:");
-                System.out.println(queue.toString());
                 Node<T> currNode = queue.poll();
-                System.out.println("After: " + currNode);
-                System.out.println(queue.toString());
-                System.out.println();
-                
                 assert currNode != null;
                 updateQueue(currNode, queue, parents, visited, paths);
                 if (currNode == destNode) {
@@ -246,7 +219,6 @@ public class NodeGraph<T> {
     private void updateQueue(Node<T> currNode, Queue<Node<T>> queue, List<Node<T>> parents, boolean[] visited, int[] paths) {
         final int currIndex = getIndex(currNode.getLabel());
         visited[currIndex] = true;
-        System.out.println("EXPLORE: " + currNode);
         /* For all neighbours of the current node */
         for (Node<T> neighbour : currNode.getEdges()) {
             int neighIndex = getIndex(neighbour);
@@ -300,7 +272,7 @@ public class NodeGraph<T> {
      * @param node the requested node
      * @return the index of the node, or -1 if does not exist
      */
-    private int getIndex(Node<T> node) {
+    int getIndex(Node<T> node) {
         return this.getIndex(node.getLabel());
     }
     

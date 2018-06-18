@@ -1,11 +1,37 @@
 import java.util.*;
 
+/**
+ * Directed, weighted graph structure containing nodes and edges
+ * @param <T> Generic. Specify data type contained in the graph on creation
+ * @author warycanary
+ */
 public class NodeGraph<T> {
     
+    /**
+     * List of nodes in the graph
+     */
     private final List<Node<T>> nodes = new ArrayList<>();
+    
+    /**
+     * Map of node positions in the nodes List
+     */
     private final Map<T, Integer> indexes = new LinkedHashMap<>();
+    
+    /**
+     * Returned when a node or edge is not found
+     */
     private final int NOT_FOUND = -1;
     
+    /**
+     * Default weight of an edge
+     */
+    private final int DEFAULT_WEIGHT = 1;
+    
+    /**
+     * Add a new node to the graph
+     * @param label data to be contained in the node
+     * @return true if the node was added
+     */
     public boolean addNode(T label) {
         final int index = getIndex(label);
         if (index == NOT_FOUND) {
@@ -16,17 +42,40 @@ public class NodeGraph<T> {
         return false;
     }
     
+    /**
+     * Remove the specified node from the graph
+     * @param label node containing this data will be removed
+     * @return true if the node was removed
+     */
     public boolean removeNode(T label) {
         final int index = getIndex(label);
         if (index != NOT_FOUND) {
             nodes.remove(index);
             indexes.remove(label);
+            /* Update the indexes of the nodes in the Map */
             rehash();
             return true;
         }
         return false;
     }
     
+    /**
+     * Add an edge with a direction to the graph, use default weight
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @return true if the edge was added
+     */
+    public boolean addDirectedEdge(T srcLabel, T destLabel) {
+        return addDirectedEdge(srcLabel, destLabel, DEFAULT_WEIGHT);
+    }
+    
+    /**
+     * Add an edge with a direction to the graph
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @param weight the weight of the edge
+     * @return true if the edge was added
+     */
     public boolean addDirectedEdge(T srcLabel, T destLabel, int weight) {
         final int srcIndex = getIndex(srcLabel);
         final int destIndex = getIndex(destLabel);
@@ -34,18 +83,43 @@ public class NodeGraph<T> {
                 && nodes.get(srcIndex).addEdge(nodes.get(destIndex), weight);
     }
     
-    public boolean addDirectedEdge(T srcLabel, T destLabel) {
-        return addDirectedEdge(srcLabel, destLabel, 1);
+    /**
+     * Add an edge in both directions to the graph, use default weight
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @return true if the edge was added
+     */
+    public boolean addUndirectedEdge(T srcLabel, T destLabel) {
+        return addUndirectedEdge(srcLabel, destLabel, DEFAULT_WEIGHT);
     }
     
+    /**
+     * Add an edge in both directions to the graph
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @param weight the weight of the edge
+     * @return true if the edge was removed
+     */
     public boolean addUndirectedEdge(T srcLabel, T destLabel, int weight) {
         return addDirectedEdge(srcLabel, destLabel, weight) && addDirectedEdge(destLabel, srcLabel, weight);
     }
     
-    public boolean addUndirectedEdge(T srcLabel, T destLabel) {
-        return addUndirectedEdge(srcLabel, destLabel, 1);
+    /**
+     * Remove an edge in both directions from the graph
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @return true if the edge was removed
+     */
+    public boolean removeUndirectedEdge(T srcLabel, T destLabel) {
+        return removeDirectedEdge(srcLabel, destLabel) && removeDirectedEdge(destLabel, srcLabel);
     }
     
+    /**
+     * Remove an edge in a single direction from the graph
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @return true if the edge was removed
+     */
     public boolean removeDirectedEdge(T srcLabel, T destLabel) {
         final int srcIndex = getIndex(srcLabel);
         final int destIndex = getIndex(destLabel);
@@ -53,80 +127,194 @@ public class NodeGraph<T> {
                 && nodes.get(srcIndex).removeEdge(nodes.get(destIndex));
     }
     
-    public boolean removeUndirectedEdge(T srcLabel, T destLabel) {
-        return removeDirectedEdge(srcLabel, destLabel) && removeDirectedEdge(destLabel, srcLabel);
-    }
-    
-    public Collection<Node<T>> getEdges(T label) {
+    /**
+     * Get a collection of neighbours of a node
+     * @param label the requested node
+     * @return collection of neighbouring nodes, or an empty list
+     */
+    public Collection<Node<T>> getNeighbours(T label) {
         final int index = getIndex(label);
         if (index != NOT_FOUND) {
             return nodes.get(index).getEdges();
         }
-        return null;
+        /* If no neighbours, return an empty list */
+        return new ArrayList<>();
     }
     
-    public int shortestPath(T srcLabel, T destLabel) {
+    /**
+     * Get an order list of nodes of the shortest path between two nodes
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @return list of nodes - the shortest path from source to destination
+     */
+    public List<Node<T>> shortestPath(T srcLabel, T destLabel) {
+        List<Node<T>> parents = new ArrayList<>(Collections.nCopies(nodes.size(), null));
+        int[] paths = new int[nodes.size()];
+        return dijkstra(srcLabel, destLabel, parents, paths);
+    }
+    
+    /**
+     * Get the length of the shortest path between two nodes
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @return length of the shortest path, or -1 if no path found
+     */
+    public int shortestPathLength(T srcLabel, T destLabel) {
+        List<Node<T>> parents = new ArrayList<>(Collections.nCopies(nodes.size(), null));
+        int[] paths = new int[nodes.size()];
+        /* If the list is not empty (ie. no path) */
+        if (dijkstra(srcLabel, destLabel, parents, paths).size() > 0) {
+            return paths[getIndex(destLabel)];
+        }
+        /* If no path, return an empty list */
+        return NOT_FOUND;
+    }
+    
+    /**
+     * Implementation of Dijkstra's Algorithm to calculate the shortest path
+     * @param srcLabel the source node label
+     * @param destLabel the destination node label
+     * @param parents list of the parents nodes of each node visited
+     * @param paths int array of the shortest paths to each node from the source
+     * @return list of nodes - the shortest path from source to destination
+     */
+    private List<Node<T>> dijkstra(T srcLabel, T destLabel, List<Node<T>> parents, int[] paths) {
         final int srcIndex = getIndex(srcLabel);
         final int destIndex = getIndex(destLabel);
         
         if (srcIndex != NOT_FOUND && destIndex != NOT_FOUND) {
-            Queue<Node<T>> queue = new LinkedList<>();
-            queue.add(nodes.get(srcIndex));
+            final Node<T> srcNode = nodes.get(srcIndex);
+            final Node<T> destNode = nodes.get(destIndex);
             
-            /* Create ArrayLists */
-            boolean [] visited = new boolean[nodes.size()];
-            int [] paths = new int[nodes.size()];
+            boolean[] visited = new boolean[nodes.size()];
+            Queue<Node<T>> queue = new PriorityQueue<>((node1, node2) -> {
+                int path1 = paths[getIndex(node1)];
+                int path2 = paths[getIndex(node2)];
+                int val = 0;
+                System.out.println("Node: " + node1 + " Path1: " + path1);
+                System.out.println("Node: " + node2 + " Path2: " + path2);
+    
+                if (path1 == NOT_FOUND && path2 == NOT_FOUND) {
+                    val = 0;
+                } else if (path1 == NOT_FOUND) {
+                    val = 1;
+                } else if (path2 == NOT_FOUND) {
+                    val = -1;
+                } else if (path1 < path2) {
+                    val = -1;
+                } else {
+                    val = 1;
+                }
+                System.out.println("Val: " + val + "\n");
+                return val;
+            });
+            
+            queue.add(srcNode);
+            
+            /* Set all path values to -1 */
             Arrays.fill(paths, NOT_FOUND);
+            /* Set starting path = 0 */
             paths[srcIndex] = 0;
             
             while (queue.size() > 0) {
-                Node<T> current = queue.poll();
-                assert current != null;
-                updateQueue(current, queue, visited, paths);
-                if (current == nodes.get(destIndex)) {
-                    return paths[destIndex];
-                }
-            }
-        }
-        return NOT_FOUND;
-    }
-    
-    private void updateQueue(Node<T> current, Queue<Node<T>> queue, boolean [] visited, int [] paths) {
-        final int currIndex = getIndex(current.getLabel());
-        
-        for (Node<T> neighbour : current.getEdges()) {
-            final int neighIndex = getIndex(neighbour);
-            if (!visited[neighIndex]) {
-                queue.add(neighbour);
-                visited[currIndex] = true;
+                System.out.println("Before:");
+                System.out.println(queue.toString());
+                Node<T> currNode = queue.poll();
+                System.out.println("After: " + currNode);
+                System.out.println(queue.toString());
+                System.out.println();
                 
-                final int edgeWeight = current.getEdgeWeight(neighbour);
-                final int currPath = paths[currIndex] + edgeWeight;
-                if (paths[neighIndex] == NOT_FOUND) {
-                    paths[neighIndex] = currPath;
-                } else if (currPath < paths[neighIndex]) {
-                    paths[neighIndex] = currPath;
+                assert currNode != null;
+                updateQueue(currNode, queue, parents, visited, paths);
+                if (currNode == destNode) {
+                    return buildPathList(destNode, srcNode, parents);
+                }
+            }
+        }
+        return new ArrayList<>();
+    }
+    
+    /**
+     * Visits the current node and finds neighbours. Updates path to neighbouring nodes if
+     * a shorter path is found. Shortest path to current node is found when a node is visited
+     * @param currNode the current node being visited
+     * @param queue queue of nodes to be visited
+     * @param parents list of parent nodes of each node visited
+     * @param visited boolean array of all nodes whose shortest path has been found
+     * @param paths int array of the shortest paths to each node from the source
+     */
+    private void updateQueue(Node<T> currNode, Queue<Node<T>> queue, List<Node<T>> parents, boolean[] visited, int[] paths) {
+        final int currIndex = getIndex(currNode.getLabel());
+        visited[currIndex] = true;
+        System.out.println("EXPLORE: " + currNode);
+        /* For all neighbours of the current node */
+        for (Node<T> neighbour : currNode.getEdges()) {
+            int neighIndex = getIndex(neighbour);
+            /* Shortest paths of visited neighbours have already been determined
+             * Note: Will not visit self, already marked as visited */
+            if (!visited[neighIndex]) {
+                /* Path to neighbour is the path to the current node + neighbour edge weight */
+                final int path = paths[currIndex] + currNode.getEdgeWeight(neighbour);
+                if (paths[neighIndex] == NOT_FOUND || path < paths[neighIndex]) {
+                    parents.set(neighIndex, currNode);
+                    paths[neighIndex] = path;
+                }
+    
+                /* Do not add duplicates*/
+                if (!queue.contains(neighbour)) {
+                    queue.add(neighbour);
                 }
             }
         }
     }
     
+    /**
+     * Backtracks parents array and builds a List of nodes of the path
+     * @param currNode node for backtracking parents, initially the destination node
+     * @param srcNode the source node being backtracked to
+     * @param parents list of parents of all visited nodes
+     * @return list of nodes - the shortest path from source to destination
+     */
+    private List<Node<T>> buildPathList(Node<T> currNode, Node<T> srcNode, List<Node<T>> parents) {
+        List<Node<T>> path = new ArrayList<>();
+        while (currNode != srcNode) {
+            final int currIndex = getIndex(currNode.getLabel());
+            path.add(currNode);
+            currNode = parents.get(currIndex);
+        }
+        Collections.reverse(path);
+        return path;
+    }
+    
+    /**
+     * Updates the indexes of nodes in the Map (ie. when a node is removed)
+     */
     private void rehash() {
         for (int i = 0; i < nodes.size(); i++) {
             indexes.put(nodes.get(i).getLabel(), i);
         }
     }
     
+    /**
+     * Gets the index of a given node in the nodes List
+     * @param node the requested node
+     * @return the index of the node, or -1 if does not exist
+     */
+    private int getIndex(Node<T> node) {
+        return this.getIndex(node.getLabel());
+    }
+    
+    /**
+     * Gets the index of a given node label in the nodes List
+     * @param label the requested node's label
+     * @return the index of the node, or -1 if does not exist
+     */
     private int getIndex(T label) {
         Integer index = indexes.get(label);
         if (index != null) {
             return index;
         }
         return NOT_FOUND;
-    }
-    
-    private int getIndex(Node<T> node) {
-        return this.getIndex(node.getLabel());
     }
     
 }

@@ -60,6 +60,13 @@ public class NodeGraph<T> {
     }
     
     /**
+     * Deletes all nodes and edges from the graph
+     */
+    public void clearGraph() {
+        this.nodes.clear();
+    }
+    
+    /**
      * Add an edge with a direction to the graph, use default weight
      * @param srcLabel the source node label
      * @param destLabel the destination node label
@@ -128,6 +135,23 @@ public class NodeGraph<T> {
     }
     
     /**
+     * Delete all edges in the graph
+     */
+    public void removeAllEdges() {
+        for (Node<T> node : nodes) {
+            node.getEdges().clear();
+        }
+    }
+    
+    /**
+     * Returns all nodes in the graph
+     * @return all nodes stored in the graph
+     */
+    public Collection<Node<T>> getNodes() {
+        return this.nodes;
+    }
+    
+    /**
      * Get a collection of neighbours of a node
      * @param label the requested node
      * @return collection of neighbouring nodes, or an empty list
@@ -185,25 +209,30 @@ public class NodeGraph<T> {
         if (srcIndex != NOT_FOUND && destIndex != NOT_FOUND) {
             final Node<T> srcNode = nodes.get(srcIndex);
             final Node<T> destNode = nodes.get(destIndex);
-            
+            /* Nodes are marked visited when shortest path is found */
             boolean[] visited = new boolean[nodes.size()];
+            /* Priority queue. Shortest paths are visited first */
             Queue<Node<T>> queue = new PriorityQueue<>(new QueueComparator<>(this, paths, NOT_FOUND));
             queue.add(srcNode);
             
             /* Set all path values to -1 */
             Arrays.fill(paths, NOT_FOUND);
-            /* Set starting path = 0 */
+            /* Set starting path to 0 */
             paths[srcIndex] = 0;
             
+            /* If queue is empty, source and destination are disconnected */
             while (queue.size() > 0) {
                 Node<T> currNode = queue.poll();
                 assert currNode != null;
+                /* Visit the current node */
                 updateQueue(currNode, queue, parents, visited, paths);
+                /* End when destination is found */
                 if (currNode == destNode) {
                     return buildPathList(destNode, srcNode, parents);
                 }
             }
         }
+        /* Return an empty list */
         return new ArrayList<>();
     }
     
@@ -225,14 +254,13 @@ public class NodeGraph<T> {
             /* Shortest paths of visited neighbours have already been determined
              * Note: Will not visit self, already marked as visited */
             if (!visited[neighIndex]) {
-                /* Path to neighbour is the path to the current node + neighbour edge weight */
+                /* Path to each neighbour is the path to the current node + neighbour edge weight */
                 final int path = paths[currIndex] + currNode.getEdgeWeight(neighbour);
                 if (paths[neighIndex] == NOT_FOUND || path < paths[neighIndex]) {
                     parents.set(neighIndex, currNode);
                     paths[neighIndex] = path;
                 }
-    
-                /* Do not add duplicates*/
+                /* Do not add duplicates to the queue */
                 if (!queue.contains(neighbour)) {
                     queue.add(neighbour);
                 }
@@ -241,7 +269,7 @@ public class NodeGraph<T> {
     }
     
     /**
-     * Backtracks parents array and builds a List of nodes of the path
+     * Backtracks parents array and builds a List of nodes of the shortest path
      * @param currNode node for backtracking parents, initially the destination node
      * @param srcNode the source node being backtracked to
      * @param parents list of parents of all visited nodes
@@ -249,11 +277,13 @@ public class NodeGraph<T> {
      */
     private List<Node<T>> buildPathList(Node<T> currNode, Node<T> srcNode, List<Node<T>> parents) {
         List<Node<T>> path = new ArrayList<>();
+        /* Add nodes to the list from the destination to source */
         while (currNode != srcNode) {
             final int currIndex = getIndex(currNode.getLabel());
             path.add(currNode);
             currNode = parents.get(currIndex);
         }
+        /* Reverse the collection so source is first */
         Collections.reverse(path);
         return path;
     }
@@ -281,7 +311,7 @@ public class NodeGraph<T> {
      * @param label the requested node's label
      * @return the index of the node, or -1 if does not exist
      */
-    private int getIndex(T label) {
+    int getIndex(T label) {
         Integer index = indexes.get(label);
         if (index != null) {
             return index;

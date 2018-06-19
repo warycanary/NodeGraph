@@ -24,14 +24,14 @@ public class QueueComparator<T> implements Comparator<Node<T>> {
     
     /**
      * Compares two nodes based on their shortest path
-     * @param n1 node 1 to compare
-     * @param n2 node 2 to compare
+     * @param node1 node 1 to compare
+     * @param node2 node 2 to compare
      * @return -1 if n1 < n2, or 1 if n1 >= n2
      */
     @Override
-    public int compare(Node<T> n1, Node<T> n2) {
-        int path1 = paths[graph.getIndex(n1)];
-        int path2 = paths[graph.getIndex(n2)];
+    public int compare(Node<T> node1, Node<T> node2) {
+        int path1 = paths[graph.getIndex(node1)];
+        int path2 = paths[graph.getIndex(node2)];
         
         /* If no paths do whatever */
         if (path1 == NOT_FOUND && path2 == NOT_FOUND) {

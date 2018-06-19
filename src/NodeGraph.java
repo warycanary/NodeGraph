@@ -196,7 +196,7 @@ public class NodeGraph<T> {
         if (dijkstra(srcLabel, destLabel, parents, paths).size() > 0) {
             return paths[getIndex(destLabel)];
         }
-        /* If no path, return an empty list */
+        /* Return -1 if no path */
         return NOT_FOUND;
     }
     

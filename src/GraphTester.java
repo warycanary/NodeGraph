@@ -3,7 +3,6 @@ public class GraphTester {
     public static void main(String[] args) {
         NodeGraph<String> graph = new NodeGraph<>();
         createGraph(graph);
-        System.out.println(graph.shortestPathLength("A", "C"));
     }
     
     public static void createGraph(NodeGraph<String> graph) {

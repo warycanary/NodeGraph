@@ -172,7 +172,7 @@ public class NodeGraph<T> {
      * @return list of nodes - the shortest path from source to destination
      */
     public List<Node<T>> shortestPath(T srcLabel, T destLabel) {
-        List<Node<T>> parents = new ArrayList<>(Collections.nCopies(nodes.size(), null));
+        Map<Node<T>, Node<T>> parents = new HashMap<>();
         int[] paths = new int[nodes.size()];
         return dijkstra(srcLabel, destLabel, parents, paths);
     }
@@ -184,7 +184,7 @@ public class NodeGraph<T> {
      * @return length of the shortest path, or -1 if no path found
      */
     public int shortestPathLength(T srcLabel, T destLabel) {
-        List<Node<T>> parents = new ArrayList<>(Collections.nCopies(nodes.size(), null));
+        Map<Node<T>, Node<T>> parents = new HashMap<>();
         int[] paths = new int[nodes.size()];
         /* If the list is not empty (ie. no path) */
         if (dijkstra(srcLabel, destLabel, parents, paths).size() > 0) {
@@ -202,7 +202,7 @@ public class NodeGraph<T> {
      * @param paths int array of the shortest paths to each node from the source
      * @return list of nodes - the shortest path from source to destination
      */
-    private List<Node<T>> dijkstra(T srcLabel, T destLabel, List<Node<T>> parents, int[] paths) {
+    private List<Node<T>> dijkstra(T srcLabel, T destLabel, Map<Node<T>, Node<T>> parents, int[] paths) {
         final int srcIndex = getIndex(srcLabel);
         final int destIndex = getIndex(destLabel);
         
@@ -228,7 +228,7 @@ public class NodeGraph<T> {
                 updateQueue(currNode, queue, parents, visited, paths);
                 /* End when destination is found */
                 if (currNode == destNode) {
-                    return buildPathList(destNode, srcNode, parents);
+                    return buildPathList(destNode, parents);
                 }
             }
         }
@@ -245,7 +245,9 @@ public class NodeGraph<T> {
      * @param visited boolean array of all nodes whose shortest path has been found
      * @param paths int array of the shortest paths to each node from the source
      */
-    private void updateQueue(Node<T> currNode, Queue<Node<T>> queue, List<Node<T>> parents, boolean[] visited, int[] paths) {
+    private void updateQueue(Node<T> currNode, Queue<Node<T>> queue,
+                             Map<Node<T>, Node<T>> parents, boolean[] visited, int[] paths) {
+        
         final int currIndex = getIndex(currNode.getLabel());
         visited[currIndex] = true;
         /* For all neighbours of the current node */
@@ -257,7 +259,7 @@ public class NodeGraph<T> {
                 /* Path to each neighbour is the path to the current node + neighbour edge weight */
                 final int path = paths[currIndex] + currNode.getEdgeWeight(neighbour);
                 if (paths[neighIndex] == NOT_FOUND || path < paths[neighIndex]) {
-                    parents.set(neighIndex, currNode);
+                    parents.put(neighbour, currNode);
                     paths[neighIndex] = path;
                 }
                 /* Do not add duplicates to the queue */
@@ -270,18 +272,16 @@ public class NodeGraph<T> {
     
     /**
      * Backtracks parents array and builds a List of nodes of the shortest path
-     * @param currNode node for backtracking parents, initially the destination node
-     * @param srcNode the source node being backtracked to
-     * @param parents list of parents of all visited nodes
+     * @param currNode node for backtracking parents, initially the destination node, ends at source
+     * @param parents Map of parents of all visited nodes
      * @return list of nodes - the shortest path from source to destination
      */
-    private List<Node<T>> buildPathList(Node<T> currNode, Node<T> srcNode, List<Node<T>> parents) {
+    private List<Node<T>> buildPathList(Node<T> currNode, Map<Node<T>, Node<T>> parents) {
         List<Node<T>> path = new ArrayList<>();
         /* Add nodes to the list from the destination to source */
-        while (currNode != srcNode) {
-            final int currIndex = getIndex(currNode.getLabel());
+        while (currNode != null) {
             path.add(currNode);
-            currNode = parents.get(currIndex);
+            currNode = parents.get(currNode);
         }
         /* Reverse the collection so source is first */
         Collections.reverse(path);

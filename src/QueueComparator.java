@@ -30,8 +30,8 @@ public class QueueComparator<T> implements Comparator<Node<T>> {
      */
     @Override
     public int compare(Node<T> node1, Node<T> node2) {
-        int path1 = paths[graph.getIndex(node1)];
-        int path2 = paths[graph.getIndex(node2)];
+        int path1 = paths[graph.getIndex(node1.getLabel())];
+        int path2 = paths[graph.getIndex(node2.getLabel())];
         
         /* If no paths do whatever */
         if (path1 == NOT_FOUND && path2 == NOT_FOUND) {

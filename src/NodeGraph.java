@@ -145,24 +145,30 @@ public class NodeGraph<T> {
     
     /**
      * Returns all nodes in the graph
-     * @return all nodes stored in the graph
+     * @return labels of nodes stored in the graph
      */
-    public Collection<Node<T>> getNodes() {
-        return this.nodes;
+    public Collection<T> getNodes() {
+        List<T> labels = new ArrayList<>();
+        for (Node<T> node : nodes) {
+            labels.add(node.getLabel());
+        }
+        return labels;
     }
     
     /**
      * Get a collection of neighbours of a node
      * @param label the requested node
-     * @return collection of neighbouring nodes, or an empty list
+     * @return collection of neighbouring node labels, or an empty list
      */
-    public Collection<Node<T>> getNeighbours(T label) {
+    public Collection<T> getNeighbours(T label) {
         final int index = getIndex(label);
+        List<T> labels = new ArrayList<>();
         if (index != NOT_FOUND) {
-            return nodes.get(index).getEdges();
+            for (Node<T> node : nodes.get(index).getEdges()) {
+                labels.add(node.getLabel());
+            }
         }
-        /* If no neighbours, return an empty list */
-        return new ArrayList<>();
+        return labels;
     }
     
     /**
@@ -171,7 +177,7 @@ public class NodeGraph<T> {
      * @param destLabel the destination node label
      * @return list of nodes - the shortest path from source to destination
      */
-    public List<Node<T>> shortestPath(T srcLabel, T destLabel) {
+    public List<T> shortestPath(T srcLabel, T destLabel) {
         Map<Node<T>, Node<T>> parents = new HashMap<>();
         int[] paths = new int[nodes.size()];
         return dijkstra(srcLabel, destLabel, parents, paths);
@@ -202,7 +208,7 @@ public class NodeGraph<T> {
      * @param paths int array of the shortest paths to each node from the source
      * @return list of nodes - the shortest path from source to destination
      */
-    private List<Node<T>> dijkstra(T srcLabel, T destLabel, Map<Node<T>, Node<T>> parents, int[] paths) {
+    private List<T> dijkstra(T srcLabel, T destLabel, Map<Node<T>, Node<T>> parents, int[] paths) {
         final int srcIndex = getIndex(srcLabel);
         final int destIndex = getIndex(destLabel);
         
@@ -252,7 +258,7 @@ public class NodeGraph<T> {
         visited[currIndex] = true;
         /* For all neighbours of the current node */
         for (Node<T> neighbour : currNode.getEdges()) {
-            int neighIndex = getIndex(neighbour);
+            int neighIndex = getIndex(neighbour.getLabel());
             /* Shortest paths of visited neighbours have already been determined
              * Note: Will not visit self, already marked as visited */
             if (!visited[neighIndex]) {
@@ -276,15 +282,13 @@ public class NodeGraph<T> {
      * @param parents Map of parents of all visited nodes
      * @return list of nodes - the shortest path from source to destination
      */
-    private List<Node<T>> buildPathList(Node<T> currNode, Map<Node<T>, Node<T>> parents) {
-        List<Node<T>> path = new ArrayList<>();
+    private List<T> buildPathList(Node<T> currNode, Map<Node<T>, Node<T>> parents) {
+        LinkedList<T> path = new LinkedList<>();
         /* Add nodes to the list from the destination to source */
         while (currNode != null) {
-            path.add(currNode);
+            path.addFirst(currNode.getLabel());
             currNode = parents.get(currNode);
         }
-        /* Reverse the collection so source is first */
-        Collections.reverse(path);
         return path;
     }
     
@@ -298,20 +302,12 @@ public class NodeGraph<T> {
     }
     
     /**
-     * Gets the index of a given node in the nodes List
-     * @param node the requested node
-     * @return the index of the node, or -1 if does not exist
-     */
-    int getIndex(Node<T> node) {
-        return this.getIndex(node.getLabel());
-    }
-    
-    /**
-     * Gets the index of a given node label in the nodes List
+     * Gets the index of a given node label in the nodes List. Not
+     * useful outside the NodeGraph and QueueComparator classes
      * @param label the requested node's label
      * @return the index of the node, or -1 if does not exist
      */
-    int getIndex(T label) {
+    public int getIndex(T label) {
         Integer index = indexes.get(label);
         if (index != null) {
             return index;
